@@ -14,5 +14,4 @@ Salary:
 """
 
 result = analyze_job_description(jd)
-
 print(result)
