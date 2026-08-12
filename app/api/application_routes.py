@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
@@ -11,6 +11,13 @@ from app.schemas.application import (
     ApplicationCreate,
     ApplicationResponse
 )
+
+from app.schemas.resume_match import (
+    ResumeMatch,
+    ResumeMatchRequest
+)
+
+from app.ai.job_analyzer import match_resume_to_job
 
 router = APIRouter()
 
@@ -25,11 +32,12 @@ def create_application(
     current_user: User = Depends(get_current_user)
 ):
     db_application = Application(
-        company=application.company,
-        role=application.role,
-        status=application.status,
-        user_id=current_user.id
-    )
+    company=application.company,
+    role=application.role,
+    status=application.status,
+    job_description=application.job_description,
+    user_id=current_user.id
+)
 
     db.add(db_application)
     db.commit()
@@ -53,3 +61,31 @@ def get_applications(
     )
 
     return applications
+
+@router.post(
+    "/applications/{application_id}/match",
+    response_model=ResumeMatch
+)
+def match_application(
+    application_id: int,
+    request: ResumeMatchRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    application = db.query(Application).filter(
+        Application.id == application_id,
+        Application.user_id == current_user.id
+    ).first()
+
+    if application is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Application not found"
+        )
+
+    result = match_resume_to_job(
+        request.resume,
+        application.job_description
+    )
+
+    return result

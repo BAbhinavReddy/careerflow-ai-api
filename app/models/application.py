@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy import Column, Integer, String, ForeignKey, Text
+
 from app.db.database import Base
 
 
@@ -12,5 +13,7 @@ class Application(Base):
     role = Column(String, nullable=False)
 
     status = Column(String, default="applied")
+
+    job_description = Column(Text, nullable=False)
 
     user_id = Column(Integer, ForeignKey("users.id"))
